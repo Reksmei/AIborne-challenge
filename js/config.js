@@ -1,0 +1,33 @@
+export const CONFIG = {
+    aircraft: {
+        baseSpeed: 80,
+        boostSpeed: 150,
+        brakeSpeed: 30,
+        speedLerp: 0.04,
+        pitchRate: 1.2,
+        yawRate: 1.5,
+        maxBankAngle: 0.5,
+        bankSmoothing: 0.08,
+    },
+    camera: {
+        followDistance: 12,
+        followHeight: 4,
+        lookAheadDistance: 30,
+        smoothing: 0.06,
+    },
+    world: {
+        targetCount: 50,
+        targetSpread: 600,
+        targetMinHeight: 15,
+        targetMaxHeight: 220,
+        ringRadius: 12,
+        ringTubeRadius: 2,
+        groundSize: 4000,
+        fogNear: 400,
+        fogFar: 2000,
+        treeCount: 300,
+        cloudCount: 60,
+    },
+    collectRadius: 18,
+    gameDuration: 120,
+};
