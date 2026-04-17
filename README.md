@@ -48,89 +48,29 @@ The app runs on `http://localhost:5173` via Vite dev server.
 ## Frontend Architecture
 
 ```mermaid
-graph TD
-    subgraph BROWSER
-        subgraph User Input
-            KB[Keyboard<br>WASD, Shift, Space]
-            PTT[PTT Button / T key]
-        end
+graph LR
+    Player -- "keyboard" --> GameLoop
+    Player -- "push-to-talk" --> MicControl
 
-        subgraph main.js - orchestrator
-            GL[Game Loop] <-->|update| ATC[Aircraft / Targets / Terrain]
-            GL --> SE[Scoring Engine]
-            SR[scoring-rules.js<br>randomized each game] --> SE
-            SE --> TH[Tool Handler<br>switch on tool name]
-        end
-
-        KB --> GL
-        PTT --> MC
-
-        subgraph gemini-session.js
-            MODEL[getLiveGenerativeModel<br>gemini-live-2.5-flash]
-            SAC[startAudioConversation<br>functionCallingHandler → tool declarations]
-            RCV[session.receive → transcript interception]
-            SND[session.send → intro message]
-            MODEL --> SAC
-            SAC -->|bidirectional audio stream| RCV
-            SND --> SAC
-        end
-
-        TH -->|tool calls from Gemini| RCV
-
-        subgraph mic-control.js
-            MC[Patches getUserMedia<br>to capture mic tracks]
-            MC --> TE[track.enabled toggle<br>mute/unmute on PTT]
-        end
-
-        MC --> SAC
-
-        subgraph Audio Output Pipeline
-            SDK_AC[SDK AudioContext - patched]
-            subgraph radio-effect.js
-                HP[Highpass 200Hz] --> LP[Lowpass 5000Hz]
-                LP --> EQ[Peaking EQ 1200Hz +3dB]
-                EQ --> COMP[Compressor]
-                COMP --> WS[Waveshaper - distortion]
-                WS --> GAIN["Gain (0.9)"]
-            end
-            SDK_AC --> HP
-            GAIN --> SPK1[Speaker]
-        end
-
-        RCV --> SDK_AC
-
-        subgraph audio.js
-            ENG[Engine sound<br>sawtooth + noise]
-            CHM[Collect chime<br>2-tone, scales with points]
-        end
-
-        ENG --> SDK_AC
-        CHM --> SPK2[Speaker]
-
-        subgraph Custom Tools - via Gemini
-            T1[highlight_targets — beacon overlay]
-            T2[clear_highlights — remove beacons]
-            T3[spawn_targets — add more targets]
-            T4[set_plane_speed — speed multiplier]
-            T5[set_plane_size — scale up/down]
-            T6[set_plane_colour — recolour aircraft]
-            T7[do_barrel_roll — spin animation]
-            T8[invert_controls — flip pitch/yaw]
-            T9[add_bonus_time — extend timer]
-            T10[reset_position — teleport to origin]
-            T11[transform_vehicle — swap model]
-            T12[set_weather — sky/fog/lighting preset]
-        end
-
-        TH --> T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8 & T9 & T10 & T11 & T12
+    subgraph Browser
+        GameLoop["Game Loop<br>(main.js)"]
+        GameLoop <--> World["Aircraft / Targets / Terrain"]
+        GameLoop --> Scoring["Scoring Engine<br>(randomized rules)"]
+        GameLoop --> ToolHandler["Tool Handler"]
+        MicControl["Mic Control<br>(push-to-talk)"]
+        RadioEffect["Radio Effect<br>(audio filter chain)"]
     end
 
-    SAC <-->|WebSocket<br>bidirectional audio + tool calls| GEMINI
+    MicControl -- "audio in" --> GeminiSession
+    GeminiSession -- "audio out" --> RadioEffect
+    RadioEffect --> Speaker
+    GeminiSession -- "tool calls" --> ToolHandler
 
-    subgraph Firebase AI SDK - VertexAI backend
-        GEMINI[Gemini Live API<br>gemini-live-2.5-flash-native-audio]
-        GEMINI_FEATURES["• Audio in/out<br>• Output transcription<br>• Function calling<br>• System prompt with<br>  randomized scoring rules + persona"]
+    subgraph Gemini Live API
+        GeminiSession["Live Session<br>(gemini-session.js)"]
     end
+
+    GeminiSession <-- "WebSocket" --> GeminiBackend["Gemini Live<br>(via Firebase AI SDK)"]
 ```
 
 ### Key Patterns
