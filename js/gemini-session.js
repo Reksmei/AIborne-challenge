@@ -3,13 +3,15 @@ import {
   ResponseModality,
   startAudioConversation as sdkStartAudioConversation,
 } from "firebase/ai";
-import { ai } from "./firebase-config.js";
+import { googleAI, vertexAI } from "./firebase-config.js";
 
-const CANDIDATE_MODELS = [
-  "gemini-live-2.5-flash-native-audio",
-  "gemini-live-2.5-flash-preview-native-audio-09-2025",
-  "gemini-2.5-flash-native-audio-preview-12-2025",
-  "gemini-2.0-flash-exp"
+const ATTEMPT_CONFIGS = [
+  { ai: googleAI, model: "gemini-2.0-flash-exp", label: "Google AI (gemini-2.0-flash-exp)" },
+  { ai: googleAI, model: "gemini-2.5-flash-native-audio-preview-12-2025", label: "Google AI (gemini-2.5-flash-native-audio-preview-12-2025)" },
+  { ai: googleAI, model: "gemini-2.0-flash-realtime-exp", label: "Google AI (gemini-2.0-flash-realtime-exp)" },
+  { ai: vertexAI, model: "gemini-live-2.5-flash-native-audio", label: "Vertex AI (gemini-live-2.5-flash-native-audio)" },
+  { ai: vertexAI, model: "gemini-live-2.5-flash-preview-native-audio-09-2025", label: "Vertex AI (gemini-live-2.5-flash-preview-native-audio-09-2025)" },
+  { ai: vertexAI, model: "gemini-2.0-flash-exp", label: "Vertex AI (gemini-2.0-flash-exp)" },
 ];
 
 let session = null;
@@ -30,9 +32,9 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
 
   let lastError = null;
 
-  for (const modelName of CANDIDATE_MODELS) {
+  for (const config of ATTEMPT_CONFIGS) {
     const modelConfig = {
-      model: modelName,
+      model: config.model,
       systemInstruction: { parts: [{ text: systemPrompt }] },
       generationConfig: {
         responseModalities: [ResponseModality.AUDIO],
@@ -45,8 +47,8 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
     }
 
     try {
-      console.log(`[gemini] Attempting connection with model: ${modelName}`);
-      liveModel = getLiveGenerativeModel(ai, modelConfig);
+      console.log(`[gemini] Attempting connection using ${config.label}...`);
+      liveModel = getLiveGenerativeModel(config.ai, modelConfig);
       session = await liveModel.connect();
 
       // Intercept receive() to tap into transcription data
@@ -56,16 +58,16 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
         return interceptTranscriptions(gen);
       };
 
-      console.log(`[gemini] Session connected successfully using ${modelName}`);
+      console.log(`[gemini] Session connected successfully using ${config.label}`);
       onStatusChange?.("connected");
       return session;
     } catch (err) {
-      console.warn(`[gemini] Failed to connect using ${modelName}:`, err);
+      console.warn(`[gemini] Connection failed using ${config.label}:`, err);
       lastError = err;
     }
   }
 
-  console.error("[gemini] All candidate models failed to connect:", lastError);
+  console.error("[gemini] All candidate model/backend combinations failed to connect:", lastError);
   onStatusChange?.("error");
   throw lastError;
 }
