@@ -1,0 +1,6 @@
+# Firebase App Hosting Configuration
+# https://firebase.google.com/docs/app-hosting/configure
+
+runConfig:
+  maxInstances: 10
+  concurrency: 80
