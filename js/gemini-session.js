@@ -6,12 +6,11 @@ import {
 import { googleAI, vertexAI } from "./firebase-config.js";
 
 const ATTEMPT_CONFIGS = [
-  { ai: googleAI, model: "gemini-2.0-flash-exp", label: "Google AI (gemini-2.0-flash-exp)" },
-  { ai: googleAI, model: "gemini-2.5-flash-native-audio-preview-12-2025", label: "Google AI (gemini-2.5-flash-native-audio-preview-12-2025)" },
-  { ai: googleAI, model: "gemini-2.0-flash-realtime-exp", label: "Google AI (gemini-2.0-flash-realtime-exp)" },
   { ai: vertexAI, model: "gemini-live-2.5-flash-native-audio", label: "Vertex AI (gemini-live-2.5-flash-native-audio)" },
   { ai: vertexAI, model: "gemini-live-2.5-flash-preview-native-audio-09-2025", label: "Vertex AI (gemini-live-2.5-flash-preview-native-audio-09-2025)" },
   { ai: vertexAI, model: "gemini-2.0-flash-exp", label: "Vertex AI (gemini-2.0-flash-exp)" },
+  { ai: googleAI, model: "gemini-2.0-flash-exp", label: "Google AI (gemini-2.0-flash-exp)" },
+  { ai: googleAI, model: "gemini-2.5-flash-native-audio-preview-12-2025", label: "Google AI (gemini-2.5-flash-native-audio-preview-12-2025)" },
 ];
 
 let session = null;
