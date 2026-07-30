@@ -2,13 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getAI, VertexAIBackend } from "firebase/ai";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCCQ_h98gq6IbDbWLakvRuedfdkzM1XpW8",
+  apiKey: "AIzaSyB0zh50hIUdKjMQSRKhyXbHvB7c1vJivCQ",
   authDomain: "ai-pg-demos.firebaseapp.com",
   databaseURL: "https://ai-pg-demos.firebaseio.com",
   projectId: "ai-pg-demos",
   storageBucket: "ai-pg-demos.firebasestorage.app",
-  messagingSenderId: "584146333585",
-  appId: "ai-borne-demo",
+  messagingSenderId: "389246838568",
+  appId: "1:389246838568:web:fbf6202ec839b02fa2521d",
   measurementId: "G-J8G160Q36V",
 };
 
