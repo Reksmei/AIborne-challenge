@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAI, GoogleAIBackend } from "firebase/ai";
+import { getAI, VertexAIBackend } from "firebase/ai";
 
 const defaultApiKey = typeof atob === "function" ? atob("QVEuQWI4Uk42SXdFN083ZUZNOUJ1T3U3VWotbFZ5WGN3QVc1RXFibEpZRW9zMlBfYU9Ub3c=") : "";
 
@@ -15,6 +15,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const ai = getAI(app, { backend: new GoogleAIBackend() });
+const ai = getAI(app, { backend: new VertexAIBackend({ location: "us-central1" }) });
 
 export { app, ai };
