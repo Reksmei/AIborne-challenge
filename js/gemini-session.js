@@ -1,6 +1,7 @@
 const defaultApiKey = typeof atob === "function" ? atob("QVEuQWI4Uk42S1dBU3UzeDZreTh5cGtHOEVtYUhsV0l4YkJETkY5RjRGQnhNT3NTeFlpUQ==") : "";
 
 let ws = null;
+let keepAliveTimer = null;
 let _onStatusChange = null;
 let _onTranscript = null;
 let _onToolCall = null;
@@ -9,6 +10,26 @@ let _audioCtx = null;
 
 function getApiKey() {
   return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY || defaultApiKey;
+}
+
+function stopKeepAlive() {
+  if (keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+}
+
+function startKeepAlive() {
+  stopKeepAlive();
+  keepAliveTimer = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({ clientContent: { turns: [], turnComplete: false } }));
+      } catch (e) {
+        console.warn("[gemini] Keepalive error:", e);
+      }
+    }
+  }, 15000);
 }
 
 function playAudioPCM(base64Data, sampleRate = 24000) {
@@ -60,13 +81,14 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
           setup: {
             model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
             generationConfig: {
-              responseModalities: ["AUDIO", "TEXT"],
+              responseModalities: ["AUDIO"],
             },
             systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
             tools: tools && tools.length > 0 ? [{ functionDeclarations: tools }] : undefined
           }
         };
         ws.send(JSON.stringify(setupMessage));
+        startKeepAlive();
       };
 
       ws.onmessage = (event) => {
@@ -117,16 +139,19 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
 
       ws.onerror = (err) => {
         console.error("[gemini] WebSocket error:", err);
+        stopKeepAlive();
         _onStatusChange?.("error");
         reject(err);
       };
 
       ws.onclose = (event) => {
         console.log("[gemini] WebSocket closed code:", event.code);
+        stopKeepAlive();
         _onStatusChange?.("disconnected");
       };
     } catch (e) {
       console.error("[gemini] Failed to create WebSocket:", e);
+      stopKeepAlive();
       _onStatusChange?.("error");
       reject(e);
     }
@@ -197,6 +222,7 @@ export async function sendText(text) {
  * Disconnect the live WebSocket session.
  */
 export async function disconnect() {
+  stopKeepAlive();
   if (_recognition) {
     try { _recognition.stop(); } catch {}
     _recognition = null;
