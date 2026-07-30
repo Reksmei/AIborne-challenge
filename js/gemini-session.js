@@ -58,6 +58,32 @@ function playAudioPCM(base64Data, sampleRate = 24000) {
   }
 }
 
+function sanitizeToolsForLiveAPI(tools) {
+  if (!tools || !Array.isArray(tools)) return undefined;
+  return tools.map(tool => {
+    const copy = JSON.parse(JSON.stringify(tool));
+    if (copy.parameters) {
+      uppercaseSchemaTypes(copy.parameters);
+    }
+    return copy;
+  });
+}
+
+function uppercaseSchemaTypes(schema) {
+  if (!schema || typeof schema !== 'object') return;
+  if (typeof schema.type === 'string') {
+    schema.type = schema.type.toUpperCase();
+  }
+  if (schema.properties) {
+    for (const key of Object.keys(schema.properties)) {
+      uppercaseSchemaTypes(schema.properties[key]);
+    }
+  }
+  if (schema.items) {
+    uppercaseSchemaTypes(schema.items);
+  }
+}
+
 /**
  * Connect to Gemini Live API over direct WebSocket.
  */
@@ -77,6 +103,7 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
 
       ws.onopen = () => {
         console.log("[gemini] Direct WebSocket connected! Sending setup frame...");
+        const sanitizedTools = sanitizeToolsForLiveAPI(tools);
         const setupMessage = {
           setup: {
             model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
@@ -84,7 +111,7 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
               responseModalities: ["AUDIO"],
             },
             systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-            tools: tools && tools.length > 0 ? [{ function_declarations: tools }] : undefined
+            tools: sanitizedTools && sanitizedTools.length > 0 ? [{ function_declarations: sanitizedTools }] : undefined
           }
         };
         ws.send(JSON.stringify(setupMessage));
