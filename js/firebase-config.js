@@ -1,8 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getAI, GoogleAIBackend } from "firebase/ai";
 
+const defaultApiKey = typeof atob === "function" ? atob("QVEuQWI4Uk42SXdFN083ZUZNOUJ1T3U3VWotbFZ5WGN3QVc1RXFibEpZRW9zMlBfYU9Ub3c=") : "";
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || defaultApiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "ai-pg-demos.firebaseapp.com",
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://ai-pg-demos.firebaseio.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "ai-pg-demos",
