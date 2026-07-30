@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 
@@ -9,33 +10,45 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
-const PORT = process.env.PORT || 8080;
+const PORT = parseInt(process.env.PORT || '8080', 10);
+const HOST = '0.0.0.0';
 
-const apiKey = process.env.VERTEX_AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_FIREBASE_API_KEY;
+const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.VERTEX_AI_API_KEY || process.env.GEMINI_API_KEY;
 const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.VITE_FIREBASE_PROJECT_ID || 'ai-pg-demos';
 
-let aiClient;
+let aiClient = null;
 try {
-  aiClient = new GoogleGenAI({
-    vertexAI: true,
-    project: projectId,
-    location: 'us-central1',
-    apiKey: apiKey
-  });
+  if (apiKey) {
+    aiClient = new GoogleGenAI({
+      vertexAI: true,
+      project: projectId,
+      location: 'us-central1',
+      apiKey: apiKey
+    });
+  } else {
+    aiClient = new GoogleGenAI({
+      vertexAI: true,
+      project: projectId,
+      location: 'us-central1'
+    });
+  }
 } catch (e) {
-  console.warn('Failed to init GoogleGenAI with API Key, falling back to ADC:', e);
-  aiClient = new GoogleGenAI({
-    vertexAI: true,
-    project: projectId,
-    location: 'us-central1'
-  });
+  console.warn('GoogleGenAI init warning:', e.message);
 }
 
-// Serve static files from dist directory
-app.use(express.static(path.join(__dirname, 'dist')));
+// Health check endpoint for Cloud Run / App Hosting
+app.get('/_health', (req, res) => res.status(200).send('OK'));
+
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
 
 app.post('/api/gemini/chat', async (req, res) => {
   try {
+    if (!aiClient) {
+      return res.status(500).json({ error: 'AI Client not initialized' });
+    }
     const { prompt, systemPrompt, tools, history } = req.body;
 
     const config = {};
@@ -66,9 +79,14 @@ app.post('/api/gemini/chat', async (req, res) => {
 
 // SPA fallback: return index.html for any route
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(200).send('App Hosting Static Container Online');
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Server listening on ${HOST}:${PORT}`);
 });
