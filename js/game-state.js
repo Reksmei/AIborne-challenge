@@ -43,3 +43,7 @@ export function addPoints(points) {
 
 export function getScore() { return score; }
 export function isRunning() { return running; }
+export function stopGame() {
+    running = false;
+    finished = true;
+}

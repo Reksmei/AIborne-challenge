@@ -5,7 +5,7 @@ import { createTerrain, updateClouds } from './terrain.js';
 import { createTargets, updateTargets, highlightTargets, clearHighlights, spawnTargets } from './targets.js';
 import { setScale as setAircraftScale, setColour as setAircraftColour, setSpeedMultiplier, doBarrelRoll, setInvertedControls, resetPosition, transformModel } from './aircraft.js';
 import { initHUD } from './hud.js';
-import { startGame, updateGameState, addPoints, isRunning } from './game-state.js';
+import { startGame, updateGameState, addPoints, isRunning, stopGame } from './game-state.js';
 import * as ScoringRules from './scoring-rules.js';
 import * as gemini from './gemini-session.js';
 import { install as installRadioEffect } from './radio-effect.js';
@@ -381,6 +381,76 @@ initCamera(camera);
 createTerrain(scene);
 createAircraft(scene);
 createTargets(scene);
+
+// ---- About / How It Works UI ----
+const aboutModal = document.getElementById('about-modal');
+const aboutShowBtn = document.getElementById('about-show-btn');
+const aboutCloseBtn = document.getElementById('about-close-btn');
+const aboutTabs = document.querySelectorAll('.about-tab');
+const aboutTabContents = document.querySelectorAll('.about-tab-content');
+
+if (aboutShowBtn && aboutModal) {
+    aboutShowBtn.addEventListener('click', () => {
+        aboutModal.classList.add('visible');
+    });
+}
+if (aboutCloseBtn && aboutModal) {
+    aboutCloseBtn.addEventListener('click', () => {
+        aboutModal.classList.remove('visible');
+    });
+}
+if (aboutModal) {
+    aboutModal.addEventListener('click', (e) => {
+        if (e.target === aboutModal) aboutModal.classList.remove('visible');
+    });
+}
+
+aboutTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        aboutTabs.forEach(t => t.classList.remove('active'));
+        aboutTabContents.forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        const targetId = `tab-${tab.dataset.tab}`;
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) targetContent.classList.add('active');
+    });
+});
+
+// Exit to main menu
+const exitBtn = document.getElementById('exit-btn');
+if (exitBtn) {
+    exitBtn.addEventListener('click', () => {
+        returnToMainMenu();
+    });
+}
+
+function returnToMainMenu() {
+    stopGame();
+    gemini.disconnect();
+    Audio.stopEngine();
+    resetPosition();
+    const startScreen = document.getElementById('start-screen');
+    if (startScreen) startScreen.classList.remove('hidden');
+    Autopilot.start();
+    showMessage("RETURNED TO MAIN MENU", 1500);
+}
+
+// Global ESC key listener
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') {
+        if (aboutModal && aboutModal.classList.contains('visible')) {
+            aboutModal.classList.remove('visible');
+            return;
+        }
+        if (lbModal && lbModal.classList.contains('visible')) {
+            lbModal.classList.remove('visible');
+            return;
+        }
+        if (isRunning()) {
+            returnToMainMenu();
+        }
+    }
+});
 
 // ---- Leaderboard UI ----
 const lbModal = document.getElementById('leaderboard-modal');

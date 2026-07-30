@@ -1,18 +1,18 @@
 import { initializeApp } from "firebase/app";
-import { getAI, VertexAIBackend } from "firebase/ai";
+import { getAI, GoogleAIBackend } from "firebase/ai";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB0zh50hIUdKjMQSRKhyXbHvB7c1vJivCQ",
-  authDomain: "ai-pg-demos.firebaseapp.com",
-  databaseURL: "https://ai-pg-demos.firebaseio.com",
-  projectId: "ai-pg-demos",
-  storageBucket: "ai-pg-demos.firebasestorage.app",
-  messagingSenderId: "389246838568",
-  appId: "1:389246838568:web:fbf6202ec839b02fa2521d",
-  measurementId: "G-J8G160Q36V",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "ai-pg-demos.firebaseapp.com",
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://ai-pg-demos.firebaseio.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "ai-pg-demos",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "ai-pg-demos.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "389246838568",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:389246838568:web:fbf6202ec839b02fa2521d",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-J8G160Q36V",
 };
 
 const app = initializeApp(firebaseConfig);
-const ai = getAI(app, { backend: new VertexAIBackend() });
+const ai = getAI(app, { backend: new GoogleAIBackend() });
 
 export { app, ai };

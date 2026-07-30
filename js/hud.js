@@ -16,7 +16,15 @@ export function updateScore(score) {
 export function updateTimer(seconds) {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
-    elTimer.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    const timeStr = `${m}:${s.toString().padStart(2, '0')}`;
+    if (elTimer) {
+        elTimer.innerHTML = `<span class="timer-label">TIME</span><span class="timer-val">${timeStr}</span>`;
+        if (seconds <= 15 && seconds > 0) {
+            elTimer.classList.add('urgent');
+        } else {
+            elTimer.classList.remove('urgent');
+        }
+    }
 }
 
 export function showPoints(points) {

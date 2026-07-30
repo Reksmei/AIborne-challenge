@@ -92,6 +92,15 @@ export function updateEngine(speed, baseSpeed, boostSpeed) {
 }
 
 /**
+ * Stop engine audio when exiting or pausing.
+ */
+export function stopEngine() {
+    if (!started) return;
+    if (engineGain) engineGain.gain.value = 0;
+    if (windGain) windGain.gain.value = 0;
+}
+
+/**
  * Play a short chime when a target is collected.
  * Pitch varies with points scored for feedback.
  * @param {number} points — score value of the collected target
