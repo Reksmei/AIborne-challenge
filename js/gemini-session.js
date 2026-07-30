@@ -84,7 +84,7 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
               responseModalities: ["AUDIO"],
             },
             systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-            tools: tools && tools.length > 0 ? [{ functionDeclarations: tools }] : undefined
+            tools: tools && tools.length > 0 ? [{ function_declarations: tools }] : undefined
           }
         };
         ws.send(JSON.stringify(setupMessage));
