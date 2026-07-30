@@ -15,6 +15,6 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const ai = getAI(app, { backend: new VertexAIBackend({ location: "us-central1" }) });
+const ai = getAI(app, { backend: new VertexAIBackend("us-central1") });
 
 export { app, ai };
