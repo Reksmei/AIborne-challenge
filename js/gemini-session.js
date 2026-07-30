@@ -5,7 +5,13 @@ import {
 } from "firebase/ai";
 import { ai } from "./firebase-config.js";
 
-const MODEL_NAME = "gemini-live-2.5-flash-native-audio";
+const CANDIDATE_MODELS = [
+  "gemini-2.5-flash-native-audio-preview-12-2025",
+  "gemini-2.5-flash-native-audio-preview-09-2025",
+  "gemini-2.0-flash-exp",
+  "gemini-2.0-flash-realtime-exp",
+  "gemini-2.0-flash"
+];
 
 let session = null;
 let liveModel = null;
@@ -23,42 +29,46 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
   _onToolCall = onToolCall;
   onStatusChange?.("connecting");
 
-  const modelConfig = {
-    model: MODEL_NAME,
-    systemInstruction: { parts: [{ text: systemPrompt }] },
-    generationConfig: {
-      responseModalities: [ResponseModality.AUDIO],
-      outputAudioTranscription: {},
-    },
-  };
+  let lastError = null;
 
-  // Add tools if provided
-  if (tools && tools.length > 0) {
-    modelConfig.tools = [{ functionDeclarations: tools }];
-  }
-
-  liveModel = getLiveGenerativeModel(ai, modelConfig);
-
-  try {
-    session = await liveModel.connect();
-
-    // Intercept receive() to tap into transcription data
-    const originalReceive = session.receive.bind(session);
-    session.receive = function () {
-      const gen = originalReceive();
-      return interceptTranscriptions(gen);
+  for (const modelName of CANDIDATE_MODELS) {
+    const modelConfig = {
+      model: modelName,
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      generationConfig: {
+        responseModalities: [ResponseModality.AUDIO],
+        outputAudioTranscription: {},
+      },
     };
 
-    console.log("[gemini] Session connected. Session object:", session);
-    console.log("[gemini] Session keys:", Object.keys(session));
-    console.log("[gemini] Session prototype methods:", Object.getOwnPropertyNames(Object.getPrototypeOf(session)));
-    onStatusChange?.("connected");
-    return session;
-  } catch (err) {
-    console.error("Failed to connect Gemini Live session:", err);
-    onStatusChange?.("error");
-    throw err;
+    if (tools && tools.length > 0) {
+      modelConfig.tools = [{ functionDeclarations: tools }];
+    }
+
+    try {
+      console.log(`[gemini] Attempting connection with model: ${modelName}`);
+      liveModel = getLiveGenerativeModel(ai, modelConfig);
+      session = await liveModel.connect();
+
+      // Intercept receive() to tap into transcription data
+      const originalReceive = session.receive.bind(session);
+      session.receive = function () {
+        const gen = originalReceive();
+        return interceptTranscriptions(gen);
+      };
+
+      console.log(`[gemini] Session connected successfully using ${modelName}`);
+      onStatusChange?.("connected");
+      return session;
+    } catch (err) {
+      console.warn(`[gemini] Failed to connect using ${modelName}:`, err);
+      lastError = err;
+    }
   }
+
+  console.error("[gemini] All candidate models failed to connect:", lastError);
+  onStatusChange?.("error");
+  throw lastError;
 }
 
 /**
