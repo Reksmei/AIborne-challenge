@@ -24,7 +24,7 @@ function startKeepAlive() {
   keepAliveTimer = setInterval(() => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       try {
-        ws.send(JSON.stringify({ clientContent: { turns: [], turnComplete: false } }));
+        ws.send(JSON.stringify({ clientContent: { turns: [], turn_complete: false } }));
       } catch (e) {
         console.warn("[gemini] Keepalive error:", e);
       }
@@ -209,7 +209,7 @@ export async function sendText(text) {
           role: "user",
           parts: [{ text }]
         }],
-        turnComplete: true
+        turn_complete: true
       }
     };
     ws.send(JSON.stringify(clientContent));
