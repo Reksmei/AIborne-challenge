@@ -11,7 +11,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 8080;
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_FIREBASE_API_KEY;
+const apiKey = process.env.VERTEX_AI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_FIREBASE_API_KEY;
 const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.VITE_FIREBASE_PROJECT_ID || 'ai-pg-demos';
 
 let aiClient;
@@ -49,7 +49,7 @@ app.post('/api/gemini/chat', async (req, res) => {
     const contents = history && history.length > 0 ? history : prompt;
 
     const response = await aiClient.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3.5-flash',
       contents: contents,
       config: config
     });
