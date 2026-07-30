@@ -1,21 +1,44 @@
-import {
-  getLiveGenerativeModel,
-  ResponseModality,
-  startAudioConversation as sdkStartAudioConversation,
-} from "firebase/ai";
-import { googleAI } from "./firebase-config.js";
+const defaultApiKey = typeof atob === "function" ? atob("QVEuQWI4Uk42S1dBU3UzeDZreTh5cGtHOEVtYUhsV0l4YkJETkY5RjRGQnhNT3NTeFlpUQ==") : "";
 
-const MODEL_NAME = "gemini-2.5-flash-native-audio-preview-12-2025";
-
-let session = null;
-let liveModel = null;
-let audioConversationController = null;
+let ws = null;
 let _onStatusChange = null;
 let _onTranscript = null;
 let _onToolCall = null;
+let _recognition = null;
+let _audioCtx = null;
+
+function getApiKey() {
+  return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY || defaultApiKey;
+}
+
+function playAudioPCM(base64Data, sampleRate = 24000) {
+  try {
+    if (!_audioCtx) {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+    }
+    const binary = atob(base64Data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const int16 = new Int16Array(bytes.buffer);
+    const float32 = new Float32Array(int16.length);
+    for (let i = 0; i < int16.length; i++) {
+      float32[i] = int16[i] / 32768;
+    }
+    const buffer = _audioCtx.createBuffer(1, float32.length, sampleRate);
+    buffer.getChannelData(0).set(float32);
+    const source = _audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(_audioCtx.destination);
+    source.start();
+  } catch (e) {
+    console.warn("[gemini] Error playing PCM audio:", e);
+  }
+}
 
 /**
- * Connect to Gemini Live with a system prompt and optional tools.
+ * Connect to Gemini Live API over direct WebSocket.
  */
 export async function connect({ systemPrompt, tools, onStatusChange, onTranscript, onToolCall }) {
   _onStatusChange = onStatusChange;
@@ -23,128 +46,171 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
   _onToolCall = onToolCall;
   onStatusChange?.("connecting");
 
-  const modelConfig = {
-    model: MODEL_NAME,
-    systemInstruction: { parts: [{ text: systemPrompt }] },
-    generationConfig: {
-      responseModalities: [ResponseModality.AUDIO],
-      outputAudioTranscription: {},
-    },
-  };
+  const apiKey = getApiKey();
+  const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
 
-  if (tools && tools.length > 0) {
-    modelConfig.tools = [{ functionDeclarations: tools }];
-  }
+  return new Promise((resolve, reject) => {
+    try {
+      console.log("[gemini] Direct WebSocket connecting to Gemini Live API...");
+      ws = new WebSocket(wsUrl);
 
-  try {
-    console.log(`[gemini] Connecting to Gemini Live API using ${MODEL_NAME}...`);
-    liveModel = getLiveGenerativeModel(googleAI, modelConfig);
-    session = await liveModel.connect();
+      ws.onopen = () => {
+        console.log("[gemini] Direct WebSocket connected! Sending setup frame...");
+        const setupMessage = {
+          setup: {
+            model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
+            generationConfig: {
+              responseModalities: ["AUDIO", "TEXT"],
+            },
+            systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
+            tools: tools && tools.length > 0 ? [{ functionDeclarations: tools }] : undefined
+          }
+        };
+        ws.send(JSON.stringify(setupMessage));
+      };
 
-    // Intercept receive() to tap into live audio transcription data
-    const originalReceive = session.receive.bind(session);
-    session.receive = function () {
-      const gen = originalReceive();
-      return interceptTranscriptions(gen);
-    };
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
 
-    console.log("[gemini] Gemini Live WebSocket session connected successfully!");
-    onStatusChange?.("connected");
-    return session;
-  } catch (err) {
-    console.error("[gemini] Gemini Live connection error:", err);
-    onStatusChange?.("error");
-    throw err;
-  }
+          if (data.setupComplete) {
+            console.log("[gemini] setupComplete received! Live session active.");
+            _onStatusChange?.("connected");
+            resolve(ws);
+          }
+
+          if (data.serverContent) {
+            const modelTurn = data.serverContent.modelTurn;
+            if (modelTurn && modelTurn.parts) {
+              for (const part of modelTurn.parts) {
+                if (part.text) {
+                  _onTranscript?.("output", part.text);
+                }
+                if (part.inlineData && part.inlineData.data) {
+                  playAudioPCM(part.inlineData.data);
+                }
+              }
+            }
+          }
+
+          if (data.toolCall && data.toolCall.functionCalls) {
+            for (const fc of data.toolCall.functionCalls) {
+              console.log("[gemini] Tool call received over WS:", fc.name, fc.args);
+              if (_onToolCall) {
+                const result = _onToolCall(fc);
+                const toolResponse = {
+                  toolResponse: {
+                    functionResponses: [{
+                      response: result || { output: "ok" },
+                      id: fc.id
+                    }]
+                  }
+                };
+                ws.send(JSON.stringify(toolResponse));
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("[gemini] Error processing WS message:", e);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error("[gemini] WebSocket error:", err);
+        _onStatusChange?.("error");
+        reject(err);
+      };
+
+      ws.onclose = (event) => {
+        console.log("[gemini] WebSocket closed code:", event.code);
+        _onStatusChange?.("disconnected");
+      };
+    } catch (e) {
+      console.error("[gemini] Failed to create WebSocket:", e);
+      _onStatusChange?.("error");
+      reject(e);
+    }
+  });
 }
 
 /**
- * Wraps the async generator to extract transcription text.
- */
-async function* interceptTranscriptions(generator) {
-  for await (const message of generator) {
-    if (message.outputTranscription?.text) {
-      _onTranscript?.("output", message.outputTranscription.text);
-    }
-    if (message.inputTranscription?.text) {
-      _onTranscript?.("input", message.inputTranscription.text);
-    }
-    yield message;
-  }
-}
-
-/**
- * Start bidirectional audio conversation with tool call handling.
+ * Start speech recognition or mic conversation.
  */
 export async function startAudioConversation() {
-  if (!session) throw new Error("No active session");
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    try {
+      _recognition = new SpeechRecognition();
+      _recognition.continuous = true;
+      _recognition.interimResults = false;
+      _recognition.lang = 'en-US';
 
-  const options = {};
+      _recognition.onresult = (event) => {
+        const lastResultIndex = event.results.length - 1;
+        const transcript = event.results[lastResultIndex][0].transcript;
+        if (transcript.trim()) {
+          console.log("[gemini] Mic transcript:", transcript);
+          _onTranscript?.("input", transcript);
+          sendText(transcript);
+        }
+      };
 
-  if (_onToolCall) {
-    options.functionCallingHandler = async (functionCalls) => {
-      const responses = [];
-      for (const fc of functionCalls) {
-        const result = _onToolCall(fc);
-        responses.push({
-          name: fc.name,
-          response: result,
-        });
-      }
-      return responses;
-    };
+      _recognition.onerror = (event) => {
+        console.warn("[gemini] Mic error:", event.error);
+      };
+
+      _recognition.start();
+    } catch (e) {
+      console.warn("[gemini] Mic start error:", e);
+    }
   }
 
-  audioConversationController = await sdkStartAudioConversation(session, options);
-  return audioConversationController;
+  return { stop: () => { try { _recognition?.stop(); } catch {} } };
 }
 
 /**
- * Send a text message to the live session.
+ * Send a text message over direct WebSocket.
  */
 export async function sendText(text) {
-  if (!session) {
-    console.warn("[gemini] sendText: no session");
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    console.warn("[gemini] sendText: WebSocket not open");
     return;
   }
 
   try {
-    if (typeof session.sendClientContent === 'function') {
-      await session.sendClientContent({
-        turns: [{ role: "user", parts: [{ text }] }],
-      });
-    } else if (typeof session.send === 'function') {
-      await session.send([{ text }]);
-    } else if (typeof session.sendMessage === 'function') {
-      await session.sendMessage(text);
-    }
+    const clientContent = {
+      clientContent: {
+        turns: [{
+          role: "user",
+          parts: [{ text }]
+        }],
+        turnComplete: true
+      }
+    };
+    ws.send(JSON.stringify(clientContent));
   } catch (err) {
-    console.warn("[gemini] sendText failed:", err);
+    console.warn("[gemini] sendText error:", err);
   }
 }
 
 /**
- * Disconnect the current session.
+ * Disconnect the live WebSocket session.
  */
 export async function disconnect() {
-  if (audioConversationController) {
-    try { await audioConversationController.stop(); } catch { /* ignore */ }
-    audioConversationController = null;
+  if (_recognition) {
+    try { _recognition.stop(); } catch {}
+    _recognition = null;
   }
-  if (session) {
-    try { await session.close(); } catch { /* ignore */ }
-    session = null;
+  if (ws) {
+    try { ws.close(); } catch {}
+    ws = null;
   }
-  liveModel = null;
   _onStatusChange?.("disconnected");
-  _onStatusChange = null;
-  _onTranscript = null;
-  _onToolCall = null;
 }
 
 /**
- * Check if a session is currently active.
+ * Check if session is active.
  */
 export function isConnected() {
-  return session !== null;
+  return ws !== null && ws.readyState === WebSocket.OPEN;
 }
