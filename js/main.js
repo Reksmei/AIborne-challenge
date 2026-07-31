@@ -34,20 +34,20 @@ const geminiTranscript = document.getElementById('gemini-transcript');
 let currentOutputLine = null;
 let currentInputLine = null;
 
-function handleGeminiStatus(status) {
+function handleGeminiStatus(status, detail) {
     // Update dot indicator
     geminiDot.className = '';
     if (status === 'connecting') {
         geminiDot.classList.add('connecting');
-        geminiLabel.textContent = 'GEMINI — connecting...';
+        geminiLabel.textContent = `GEMINI — ${detail || 'connecting...'}`;
     } else if (status === 'connected') {
         geminiDot.classList.add('connected');
         geminiLabel.textContent = 'GEMINI — listening';
     } else if (status === 'error') {
         geminiDot.classList.add('error');
-        geminiLabel.textContent = 'GEMINI — error';
+        geminiLabel.textContent = `GEMINI — error (${detail || 'unknown'})`;
     } else {
-        geminiLabel.textContent = 'GEMINI — disconnected';
+        geminiLabel.textContent = `GEMINI — disconnected ${detail ? '(' + detail + ')' : ''}`;
     }
 }
 

@@ -2,6 +2,12 @@ const defaultApiKey = typeof atob === "function" ? atob("QVEuQWI4Uk42S1dBU3UzeDZ
 
 let ws = null;
 let keepAliveTimer = null;
+let reconnectTimer = null;
+let _explicitDisconnect = false;
+let _reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+let _lastConnectArgs = null;
 let _onStatusChange = null;
 let _onTranscript = null;
 let _onToolCall = null;
@@ -88,6 +94,8 @@ function uppercaseSchemaTypes(schema) {
  * Connect to Gemini Live API over direct WebSocket.
  */
 export async function connect({ systemPrompt, tools, onStatusChange, onTranscript, onToolCall }) {
+  _lastConnectArgs = { systemPrompt, tools, onStatusChange, onTranscript, onToolCall };
+  _explicitDisconnect = false;
   _onStatusChange = onStatusChange;
   _onTranscript = onTranscript;
   _onToolCall = onToolCall;
@@ -103,6 +111,7 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
 
       ws.onopen = () => {
         console.log("[gemini] Direct WebSocket connected! Sending setup frame...");
+        _reconnectAttempts = 0;
         const sanitizedTools = sanitizeToolsForLiveAPI(tools);
         const setupMessage = {
           setup: {
@@ -167,19 +176,29 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
       ws.onerror = (err) => {
         console.error("[gemini] WebSocket error:", err);
         stopKeepAlive();
-        _onStatusChange?.("error");
+        _onStatusChange?.("error", "connection error");
         reject(err);
       };
 
       ws.onclose = (event) => {
-        console.log("[gemini] WebSocket closed code:", event.code);
+        console.log(`[gemini] WebSocket closed code: ${event.code}, reason: ${event.reason}`);
         stopKeepAlive();
-        _onStatusChange?.("disconnected");
+
+        if (!_explicitDisconnect && _reconnectAttempts < MAX_RECONNECT_ATTEMPTS && _lastConnectArgs) {
+          _reconnectAttempts++;
+          console.log(`[gemini] Unexpected disconnect. Attempting reconnect ${_reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in 1.5s...`);
+          _onStatusChange?.("connecting", `reconnecting (${_reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+          reconnectTimer = setTimeout(() => {
+            connect(_lastConnectArgs).catch(e => console.warn("[gemini] Reconnect attempt failed:", e));
+          }, 1500);
+        } else {
+          _onStatusChange?.("disconnected", `code ${event.code}`);
+        }
       };
     } catch (e) {
       console.error("[gemini] Failed to create WebSocket:", e);
       stopKeepAlive();
-      _onStatusChange?.("error");
+      _onStatusChange?.("error", e.message);
       reject(e);
     }
   });
@@ -249,7 +268,12 @@ export async function sendText(text) {
  * Disconnect the live WebSocket session.
  */
 export async function disconnect() {
+  _explicitDisconnect = true;
   stopKeepAlive();
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
   if (_recognition) {
     try { _recognition.stop(); } catch {}
     _recognition = null;
