@@ -130,6 +130,7 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
             model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
             generationConfig: {
               responseModalities: ["AUDIO"],
+              thinkingConfig: { thinkingBudget: 0 },
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
