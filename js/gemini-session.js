@@ -38,10 +38,15 @@ function startKeepAlive() {
   }, 15000);
 }
 
+let nextAudioStartTime = 0;
+
 function playAudioPCM(base64Data, sampleRate = 24000) {
   try {
     if (!_audioCtx) {
       _audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+    }
+    if (_audioCtx.state === 'suspended') {
+      _audioCtx.resume();
     }
     const binary = atob(base64Data);
     const bytes = new Uint8Array(binary.length);
@@ -55,10 +60,17 @@ function playAudioPCM(base64Data, sampleRate = 24000) {
     }
     const buffer = _audioCtx.createBuffer(1, float32.length, sampleRate);
     buffer.getChannelData(0).set(float32);
+
     const source = _audioCtx.createBufferSource();
     source.buffer = buffer;
     source.connect(_audioCtx.destination);
-    source.start();
+
+    const now = _audioCtx.currentTime;
+    if (nextAudioStartTime < now) {
+      nextAudioStartTime = now;
+    }
+    source.start(nextAudioStartTime);
+    nextAudioStartTime += buffer.duration;
   } catch (e) {
     console.warn("[gemini] Error playing PCM audio:", e);
   }
@@ -222,21 +234,38 @@ export async function startAudioConversation() {
     try {
       _recognition = new SpeechRecognition();
       _recognition.continuous = true;
-      _recognition.interimResults = false;
+      _recognition.interimResults = true;
       _recognition.lang = 'en-US';
 
+      let lastSentText = "";
+
       _recognition.onresult = (event) => {
-        const lastResultIndex = event.results.length - 1;
-        const transcript = event.results[lastResultIndex][0].transcript;
-        if (transcript.trim()) {
-          console.log("[gemini] Mic transcript:", transcript);
-          _onTranscript?.("input", transcript);
-          sendText(transcript);
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            const transcript = event.results[i][0].transcript.trim();
+            if (transcript && transcript !== lastSentText) {
+              lastSentText = transcript;
+              console.log("[gemini] Speech transcript captured:", transcript);
+              _onTranscript?.("input", transcript);
+              sendText(transcript);
+            }
+          }
         }
       };
 
       _recognition.onerror = (event) => {
         console.warn("[gemini] Mic error:", event.error);
+      };
+
+      _recognition.onend = () => {
+        if (!_explicitDisconnect && ws && ws.readyState === WebSocket.OPEN) {
+          try {
+            console.log("[gemini] SpeechRecognition ended, auto-restarting...");
+            _recognition.start();
+          } catch (e) {
+            console.warn("[gemini] SpeechRecognition restart error:", e);
+          }
+        }
       };
 
       _recognition.start();

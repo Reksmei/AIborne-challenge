@@ -100,21 +100,15 @@ function buildRadioChain(ctx) {
     compressor.attack.value = 0.005;
     compressor.release.value = 0.15;
 
-    // Waveshaper — very subtle distortion
-    const waveshaper = ctx.createWaveShaper();
-    waveshaper.curve = makeDistortionCurve(20);
-    waveshaper.oversample = '2x';
-
-    // Output gain
+    // Output gain — clean audio level
     const gain = ctx.createGain();
-    gain.gain.value = 0.9;
+    gain.gain.value = 1.0;
 
-    // Wire the chain
+    // Wire clean chain (compressor -> gain -> output)
     highpass.connect(lowpass);
     lowpass.connect(midBoost);
     midBoost.connect(compressor);
-    compressor.connect(waveshaper);
-    waveshaper.connect(gain);
+    compressor.connect(gain);
 
     return {
         input: highpass,   // SDK connects to this
