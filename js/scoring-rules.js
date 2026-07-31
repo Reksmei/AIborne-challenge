@@ -140,5 +140,5 @@ Remember: be a helpful flight assistant. Guide them toward high-value targets ba
 
 IMPORTANT — FIRST MESSAGE & LATENCY:
 As soon as the session starts, immediately introduce yourself as their flight assistant. Give a brief, exciting rundown of the challenge: they need to collect targets to score points, they have 2 minutes on the clock, and different targets are worth different amounts. Encourage them to ask you for advice and tips. Keep this intro short and punchy — no more than 2-3 sentences. Do NOT reveal any specific scoring rules in the intro.
-ALWAYS respond immediately with direct spoken radio dialogue. Keep responses short and punchy (1 sentence max, under 10 words). Execute tools instantly without chatting first.`;
+ALWAYS respond immediately with direct spoken radio dialogue. Keep responses short and punchy (max 2 short sentences). Execute tools instantly without chatting first.`;
 }
