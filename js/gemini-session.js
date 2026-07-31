@@ -1,4 +1,4 @@
-const defaultApiKey = typeof atob === "function" ? atob("QVEuQWI4Uk42S1dBU3UzeDZreTh5cGtHOEVtYUhsV0l4YkJETkY5RjRGQnhNT3NTeFlpUQ==") : "";
+const defaultApiKey = typeof atob === "function" ? atob("QUl6YVN5QjhHTUFTZU1iWTdsdjhIRkhXUnRpOWVETUNHV0twVkIw") : "";
 
 let ws = null;
 let keepAliveTimer = null;
