@@ -127,9 +127,18 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
         startKeepAlive();
       };
 
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         try {
-          const data = JSON.parse(event.data);
+          let rawText = event.data;
+          if (event.data instanceof Blob) {
+            rawText = await event.data.text();
+          } else if (event.data instanceof ArrayBuffer) {
+            rawText = new TextDecoder().decode(event.data);
+          }
+
+          if (typeof rawText !== "string") return;
+
+          const data = JSON.parse(rawText);
 
           if (data.setupComplete) {
             console.log("[gemini] setupComplete received! Live session active.");
