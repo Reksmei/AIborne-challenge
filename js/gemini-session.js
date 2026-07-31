@@ -130,6 +130,13 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
             model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
             generationConfig: {
               responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: {
+                    voiceName: "Aoede"
+                  }
+                }
+              }
             },
             systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
             tools: sanitizedTools && sanitizedTools.length > 0 ? [{ function_declarations: sanitizedTools }] : undefined
@@ -162,6 +169,10 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
             const modelTurn = data.serverContent.modelTurn;
             if (modelTurn && modelTurn.parts) {
               for (const part of modelTurn.parts) {
+                // Skip internal model thinking/reasoning parts from the UI transcript
+                if (part.thought) {
+                  continue;
+                }
                 if (part.text) {
                   _onTranscript?.("output", part.text);
                 }
