@@ -315,3 +315,16 @@ export function clearHighlights() {
         }
     }
 }
+
+let targetScaleMultiplier = 1.0;
+
+export function setTargetScale(scale = 1.0) {
+    targetScaleMultiplier = Math.max(0.2, Math.min(10.0, scale));
+    for (const target of targets) {
+        if (!target.userData.collected) {
+            target.userData.baseScale = (SIZES[target.userData.size]?.scale || 1.0) * targetScaleMultiplier;
+            target.userData.collectRadius = CONFIG.collectRadius * (SIZES[target.userData.size]?.collectMult || 1.0) * targetScaleMultiplier;
+        }
+    }
+    return targetScaleMultiplier;
+}

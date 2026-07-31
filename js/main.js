@@ -2,7 +2,7 @@ import { initScene, setWeather } from './scene-setup.js';
 import { createAircraft, updateAircraft } from './aircraft.js';
 import { initCamera, updateCamera } from './camera-controller.js';
 import { createTerrain, updateClouds } from './terrain.js';
-import { createTargets, updateTargets, highlightTargets, clearHighlights, spawnTargets } from './targets.js';
+import { createTargets, updateTargets, highlightTargets, clearHighlights, spawnTargets, setTargetScale } from './targets.js';
 import { setScale as setAircraftScale, setColour as setAircraftColour, setSpeedMultiplier, doBarrelRoll, setInvertedControls, resetPosition, transformModel } from './aircraft.js';
 import { initHUD } from './hud.js';
 import { startGame, updateGameState, addPoints, isRunning, stopGame } from './game-state.js';
@@ -63,11 +63,22 @@ function handleTranscriptFragment(direction, text) {
     } else if (direction === 'input') {
         // Finalize any model line
         currentOutputLine = null;
-        // Create new user line if needed
-        if (!currentInputLine) {
-            currentInputLine = createTranscriptLine('user');
-        }
-        appendToLine(currentInputLine, text);
+        // Always create a fresh user input line and schedule 10s removal
+        const userLine = createTranscriptLine('user');
+        currentInputLine = userLine;
+        appendToLine(userLine, text);
+
+        setTimeout(() => {
+            if (userLine && userLine.parentNode) {
+                userLine.style.transition = 'opacity 0.5s ease-out';
+                userLine.style.opacity = '0';
+                setTimeout(() => {
+                    if (userLine.parentNode) {
+                        userLine.parentNode.removeChild(userLine);
+                    }
+                }, 500);
+            }
+        }, 10000);
     }
 }
 
@@ -225,6 +236,17 @@ const toolDeclarations = [
             required: ['preset'],
         },
     },
+    {
+        name: 'set_target_scale',
+        description: 'Change the scale/size of all collectible target shapes in the world. Make them giant (scale 2 or 3) or small (scale 0.5). Useful when the player asks to make targets bigger or easier to collect.',
+        parameters: {
+            type: 'object',
+            properties: {
+                scale: { type: 'number', description: 'Target scale multiplier. 1 = normal, 2 = double size, 3 = giant targets, 0.5 = tiny targets.' },
+            },
+            required: ['scale'],
+        },
+    },
 ];
 
 // Colour name to hex mapping for convenience
@@ -310,6 +332,11 @@ function handleToolCall(functionCall) {
         case 'set_weather': {
             const ok = setWeather(args.preset || 'sunny');
             return { success: ok, weather: args.preset };
+        }
+        case 'set_target_scale': {
+            const scale = Math.max(0.2, Math.min(10, args.scale || 1.0));
+            const newScale = setTargetScale(scale);
+            return { success: true, target_scale: newScale };
         }
         default:
             return { error: `Unknown tool: ${name}` };
