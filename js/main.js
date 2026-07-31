@@ -521,7 +521,7 @@ startBtn.addEventListener('click', () => {
     if (!callsign) {
         callsignInput.style.borderColor = '#EA4335';
         callsignInput.focus();
-        callsignInput.placeholder = 'callsign required!';
+        callsignInput.placeholder = 'Name required!';
         return;
     }
     callsignInput.style.borderColor = '';
