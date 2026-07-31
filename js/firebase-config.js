@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAI, GoogleAIBackend } from "firebase/ai";
 
-const defaultApiKey = typeof atob === "function" ? atob("QUl6YVN5QjhHTUFTZU1iWTdsdjhIRkhXUnRpOWVETUNHV0twVkIw") : "";
+const defaultApiKey = typeof atob === "function" ? atob("QUl6YVN5Qjhqek8tR0Jnb19YbnZvNG0ya05UeVdLeEhsY0Q3ZmVn") : "";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY || defaultApiKey,
