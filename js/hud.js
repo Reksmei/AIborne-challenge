@@ -39,10 +39,17 @@ export function showPoints(points) {
 }
 
 export function showMessage(text, duration = 2000) {
-    elMessage.textContent = text;
-    elMessage.classList.add('visible');
-    if (messageTimeout) clearTimeout(messageTimeout);
-    messageTimeout = setTimeout(() => {
-        elMessage.classList.remove('visible');
-    }, duration);
+    if (elMessage) {
+        elMessage.innerText = text;
+        elMessage.classList.add('visible');
+        if (messageTimeout) clearTimeout(messageTimeout);
+        messageTimeout = setTimeout(() => {
+            elMessage.classList.remove('visible');
+        }, duration);
+    }
+}
+
+export function showControls(duration = 6) {
+    const controlsText = "🎮 FLIGHT CONTROLS\n\n• W / S — Pitch Down / Up\n• A / D — Turn Left / Right\n• Shift — Speed Boost\n• Space — Air Brake\n• T — Push-To-Talk Radio";
+    showMessage(controlsText, duration * 1000);
 }

@@ -14,7 +14,7 @@ import { CONFIG } from './config.js';
 import * as Mic from './mic-control.js';
 import * as Autopilot from './autopilot.js';
 import * as Leaderboard from './leaderboard.js';
-import { showMessage } from './hud.js';
+import { showMessage, showControls } from './hud.js';
 
 // Generate randomized scoring rules
 ScoringRules.generate();
@@ -247,6 +247,16 @@ const toolDeclarations = [
             required: ['scale'],
         },
     },
+    {
+        name: 'show_controls',
+        description: 'Display an on-screen flight controls overlay card showing flight keys (W/S pitch, A/D turn, Shift boost, Space brake, T push-to-talk) for a few seconds. Use when the player asks "what are the controls?", "how do I fly?", or needs control reminders.',
+        parameters: {
+            type: 'object',
+            properties: {
+                duration: { type: 'number', description: 'Seconds to display the controls overlay on screen (default 6).' }
+            }
+        }
+    },
 ];
 
 // Colour name to hex mapping for convenience
@@ -337,6 +347,11 @@ function handleToolCall(functionCall) {
             const scale = Math.max(0.2, Math.min(10, args.scale || 1.0));
             const newScale = setTargetScale(scale);
             return { success: true, target_scale: newScale };
+        }
+        case 'show_controls': {
+            const secs = Math.max(3, Math.min(15, args.duration || 6));
+            showControls(secs);
+            return { success: true, message: `Displayed flight controls overlay on screen for ${secs} seconds.` };
         }
         default:
             return { error: `Unknown tool: ${name}` };
