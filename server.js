@@ -13,6 +13,7 @@ app.use(express.json());
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = '0.0.0.0';
 
+// API KEY
 const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.VERTEX_AI_API_KEY || process.env.GEMINI_API_KEY;
 const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.VITE_FIREBASE_PROJECT_ID || 'ai-pg-demos';
 
