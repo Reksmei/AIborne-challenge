@@ -9,6 +9,7 @@ const beacons = []; // active beacon meshes
 let collected = 0;
 let sceneRef = null;
 
+// Create colors for the targets
 const COLOURS = {
     blue:   { hex: 0x4285F4, emissive: 0x112244 },
     red:    { hex: 0xEA4335, emissive: 0x441111 },
