@@ -42,7 +42,7 @@ graph TB
 
     subgraph Google Cloud Platform / Gemini Live Infrastructure
         GeminiWS["wss://generativelanguage.googleapis.com<br>BidiGenerateContent WebSocket"]
-        GeminiModel["Gemini 2.5 Flash Native Audio<br>(models/gemini-2.5-flash-native-audio-preview-12-2025)"]
+        GeminiModel["Gemini 3.8 Live<br>(models/gemini-3.8-live)"]
     end
 
     subgraph Cloud Infrastructure & Persistence
