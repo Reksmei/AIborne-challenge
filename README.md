@@ -1,6 +1,6 @@
 # AIrborne Challenge ✈️🎙️
 
-An interactive 3D flight game and technical showcase demonstrating the **[Gemini Live API](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/live-api)** as a real-time, voice-activated radio copilot. Built with **Three.js**, **Google Cloud Agent Platform**, and **Firebase App Hosting**.
+An interactive 3D flight game and technical showcase demonstrating the **[Gemini Live API](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/live-api)** as a real-time, voice-activated radio copilot. Built with **Three.js**, **Gemini Platform**, and **Firebase App Hosting**.
 
 ![Start Screen](screenshot.png)
 ![In-Game Voice Copilot](screenshot2.png)
