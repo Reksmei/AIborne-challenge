@@ -4,3 +4,10 @@
 runConfig:
   maxInstances: 10
   concurrency: 80
+
+env:
+  - variable: VITE_GEMINI_API_KEY
+    secret: AIRBORNE_ONLY_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME

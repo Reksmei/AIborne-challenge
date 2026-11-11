@@ -14,8 +14,20 @@ let _onToolCall = null;
 let _recognition = null;
 let _audioCtx = null;
 
-function getApiKey() {
-  return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY || defaultApiKey;
+async function getApiKey() {
+  if (import.meta.env.VITE_GEMINI_API_KEY) {
+    return import.meta.env.VITE_GEMINI_API_KEY;
+  }
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.apiKey) return data.apiKey;
+    }
+  } catch {
+    // Ignore when /api/config is unavailable
+  }
+  return import.meta.env.VITE_FIREBASE_API_KEY || defaultApiKey;
 }
 
 function stopKeepAlive() {
@@ -113,7 +125,7 @@ export async function connect({ systemPrompt, tools, onStatusChange, onTranscrip
   _onToolCall = onToolCall;
   onStatusChange?.("connecting");
 
-  const apiKey = getApiKey();
+  const apiKey = await getApiKey();
   const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
 
   return new Promise((resolve, reject) => {

@@ -40,6 +40,13 @@ try {
 // Health check endpoint for Cloud Run / App Hosting
 app.get('/_health', (req, res) => res.status(200).send('OK'));
 
+// Runtime config endpoint so client can read Cloud Run runtime env vars
+app.get('/api/config', (req, res) => {
+  res.json({
+    apiKey: process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.VERTEX_AI_API_KEY || ''
+  });
+});
+
 const distPath = path.join(__dirname, 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
