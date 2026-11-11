@@ -168,7 +168,7 @@ npm install
 ```
 
 ### 2. Configure Environment Keys
-Get a Gemini Developer API Key from **[Google AI Studio](https://aistudio.google.com/app/apikey)** and add it to `.env`:
+Get a Gemini Developer API Key from **[Google AI Studio](https://aistudio.google.com/app/apikey)** and add it to the `.env`:
 ```env
 VITE_GEMINI_API_KEY=AIzaSyYourAIStudioApiKeyHere
 ```
