@@ -14,7 +14,7 @@ import { CONFIG } from './config.js';
 import * as Mic from './mic-control.js';
 import * as Autopilot from './autopilot.js';
 import * as Leaderboard from './leaderboard.js';
-import { showMessage, showControls } from './hud.js';
+import { showControls } from './hud.js';
 
 // Generate randomized scoring rules
 ScoringRules.generate();
@@ -380,9 +380,9 @@ pttBtn.addEventListener('mouseleave', () => { Mic.setMuted(true); });
 pttBtn.addEventListener('touchstart', (e) => { e.preventDefault(); Mic.setMuted(false); });
 pttBtn.addEventListener('touchend', () => { Mic.setMuted(true); });
 
-// Keyboard: hold T to talk
+// Keyboard: hold T to talk (only during active flight)
 window.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyT' && !e.repeat) Mic.setMuted(false);
+    if (e.code === 'KeyT' && !e.repeat && isRunning()) Mic.setMuted(false);
 });
 window.addEventListener('keyup', (e) => {
     if (e.code === 'KeyT') Mic.setMuted(true);
@@ -458,28 +458,143 @@ aboutTabs.forEach(tab => {
     });
 });
 
-// Exit to main menu
+// ---- Self-Serve Start Briefing & Finish Modals ----
+const startBriefingModal = document.getElementById('start-briefing-modal');
+const briefingLaunchBtn = document.getElementById('briefing-launch-btn');
+const briefingBackBtn = document.getElementById('briefing-back-btn');
+const briefingCloseBtn = document.getElementById('briefing-close-btn');
+
+const finishModal = document.getElementById('finish-modal');
+const finishTitle = document.getElementById('finish-title');
+const finishSubtitle = document.getElementById('finish-subtitle');
+const finishStats = document.getElementById('finish-stats');
+const finishScoreVal = document.getElementById('finish-score-val');
+const finishTimeVal = document.getElementById('finish-time-val');
+const finishRankVal = document.getElementById('finish-rank-val');
+const finishDoneBtn = document.getElementById('finish-done-btn');
+const finishCountdown = document.getElementById('finish-countdown');
+const finishProgressBar = document.getElementById('finish-progress-bar');
+
+const FINISH_AUTO_RESET_SECONDS = 20;
+let finishCountdownTimer = null;
+let pendingCallsign = '';
+let isResettingSession = false;
+
+function teardownActiveSession() {
+    stopGame();
+    gemini.disconnect();
+    Mic.setMuted(true);
+    Audio.stopEngine();
+
+    const oobWarning = document.getElementById('oob-warning');
+    if (oobWarning) oobWarning.classList.remove('visible');
+
+    const hudMessage = document.getElementById('hud-message');
+    if (hudMessage) hudMessage.classList.remove('visible');
+
+    if (homeBtn) homeBtn.style.display = 'none';
+
+    resetPosition();
+    Autopilot.start();
+}
+
+function resetForNextSession() {
+    if (isResettingSession) return;
+    isResettingSession = true;
+    if (finishCountdownTimer) {
+        clearInterval(finishCountdownTimer);
+        finishCountdownTimer = null;
+    }
+    window.location.reload();
+}
+
+function showFinishModal({ completed, callsign = '', finalScore = 0, elapsed = 0, rank = 1 }) {
+    if (!finishModal) {
+        resetForNextSession();
+        return;
+    }
+
+    if (completed) {
+        const m = Math.floor(elapsed / 60);
+        const s = Math.floor(elapsed % 60);
+        finishTitle.textContent = 'FLIGHT COMPLETE!';
+        finishSubtitle.textContent = callsign ? `Great flying, ${callsign}!` : 'Great flying, pilot!';
+        finishScoreVal.textContent = finalScore.toLocaleString();
+        finishTimeVal.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        finishRankVal.textContent = `#${rank}`;
+        finishStats.classList.remove('hidden');
+        finishDoneBtn.textContent = 'DONE — READY FOR NEXT PILOT';
+    } else {
+        finishTitle.textContent = 'SESSION ENDED';
+        finishSubtitle.textContent = 'Thanks for flying AIrborne Challenge.';
+        finishStats.classList.add('hidden');
+        finishDoneBtn.textContent = 'DONE — RETURN TO HOME';
+    }
+
+    let secondsLeft = FINISH_AUTO_RESET_SECONDS;
+    if (finishCountdown) {
+        finishCountdown.textContent = `Returning to start screen in ${secondsLeft}s...`;
+    }
+    if (finishProgressBar) {
+        finishProgressBar.style.transition = 'none';
+        finishProgressBar.style.width = '100%';
+        void finishProgressBar.offsetWidth;
+        finishProgressBar.style.transition = 'width 0.95s linear';
+    }
+
+    if (finishCountdownTimer) clearInterval(finishCountdownTimer);
+    finishCountdownTimer = setInterval(() => {
+        secondsLeft -= 1;
+        if (secondsLeft <= 0) {
+            if (finishCountdown) finishCountdown.textContent = 'Resetting for next pilot...';
+            if (finishProgressBar) finishProgressBar.style.width = '0%';
+            resetForNextSession();
+            return;
+        }
+        if (finishCountdown) {
+            finishCountdown.textContent = `Returning to start screen in ${secondsLeft}s...`;
+        }
+        if (finishProgressBar) {
+            finishProgressBar.style.width = `${(secondsLeft / FINISH_AUTO_RESET_SECONDS) * 100}%`;
+        }
+    }, 1000);
+
+    finishModal.classList.add('visible');
+    finishDoneBtn?.focus();
+}
+
+if (finishDoneBtn) {
+    finishDoneBtn.addEventListener('click', () => {
+        resetForNextSession();
+    });
+}
+
+// Exit to main menu (shows brief headset return popup)
 const exitBtn = document.getElementById('exit-btn');
 if (exitBtn) {
     exitBtn.addEventListener('click', () => {
-        returnToMainMenu();
+        if (isRunning()) {
+            returnToMainMenu();
+        }
     });
 }
 
 function returnToMainMenu() {
-    stopGame();
-    gemini.disconnect();
-    Audio.stopEngine();
-    resetPosition();
-    const startScreen = document.getElementById('start-screen');
-    if (startScreen) startScreen.classList.remove('hidden');
-    Autopilot.start();
-    showMessage("RETURNED TO MAIN MENU", 1500);
+    teardownActiveSession();
+    showFinishModal({ completed: false });
 }
 
-// Global ESC key listener
+// Global ESC & Enter key listener
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape') {
+        if (finishModal && finishModal.classList.contains('visible')) {
+            resetForNextSession();
+            return;
+        }
+        if (startBriefingModal && startBriefingModal.classList.contains('visible')) {
+            closeBriefingModal();
+            return;
+        }
         if (aboutModal && aboutModal.classList.contains('visible')) {
             aboutModal.classList.remove('visible');
             return;
@@ -490,6 +605,14 @@ window.addEventListener('keydown', (e) => {
         }
         if (isRunning()) {
             returnToMainMenu();
+        }
+    } else if (e.code === 'Enter') {
+        if (finishModal && finishModal.classList.contains('visible')) {
+            e.preventDefault();
+            resetForNextSession();
+        } else if (startBriefingModal && startBriefingModal.classList.contains('visible')) {
+            e.preventDefault();
+            launchFlight();
         }
     }
 });
@@ -532,32 +655,80 @@ lbModal.addEventListener('click', (e) => {
 
 const homeBtn = document.getElementById('home-btn');
 homeBtn.addEventListener('click', () => {
-    window.location.reload();
+    resetForNextSession();
 });
 
 function onGameEnd(finalScore, elapsed) {
-    const callsign = callsignInput.value.trim().toUpperCase() || 'ANON';
+    const callsign = (pendingCallsign || callsignInput.value.trim().toUpperCase()) || 'ANON';
     const entries = Leaderboard.addEntry(callsign, finalScore, elapsed);
-    const rank = entries.findIndex(e => e.score === finalScore && e.callsign === callsign) + 1;
-    const m = Math.floor(elapsed / 60);
-    const s = Math.floor(elapsed % 60);
-    showMessage(
-        `TIME'S UP!\nFINAL SCORE: ${finalScore.toLocaleString()}\nTIME: ${m}:${s.toString().padStart(2, '0')}\n#${rank} on the leaderboard`,
-        999999
-    );
-    homeBtn.style.display = 'block';
+    const idx = entries.findIndex(e => e.score === finalScore && e.callsign === callsign);
+    const rank = idx >= 0 ? idx + 1 : Leaderboard.getRank(finalScore);
+
+    teardownActiveSession();
+    showFinishModal({
+        completed: true,
+        callsign,
+        finalScore,
+        elapsed,
+        rank,
+    });
 }
 
-// Stop callsign input from triggering game controls
-callsignInput.addEventListener('keydown', (e) => e.stopPropagation());
+// Stop callsign input from triggering game controls (and allow Enter to open briefing)
+callsignInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.code === 'Enter') {
+        e.preventDefault();
+        startBtn.click();
+    }
+});
 callsignInput.addEventListener('keyup', (e) => e.stopPropagation());
 
 // Start autopilot for menu background
 Autopilot.start();
 
-// Start button — auto-starts Gemini and the game together
+// Start button — validates callsign and opens pre-flight briefing popup
 const startScreen = document.getElementById('start-screen');
 const startBtn = document.getElementById('start-btn');
+
+function openBriefingModal(callsign) {
+    pendingCallsign = callsign;
+    if (startBriefingModal) {
+        startBriefingModal.classList.add('visible');
+        briefingLaunchBtn?.focus();
+    } else {
+        launchFlight();
+    }
+}
+
+function closeBriefingModal() {
+    if (startBriefingModal) {
+        startBriefingModal.classList.remove('visible');
+    }
+}
+
+function launchFlight() {
+    if (isRunning()) return;
+    const callsign = pendingCallsign || callsignInput.value.trim().toUpperCase();
+    if (!callsign) {
+        closeBriefingModal();
+        return;
+    }
+
+    // Generate prompt with the callsign
+    geminiPrompt = ScoringRules.getGeminiPrompt(callsign);
+    console.log('=== GEMINI SYSTEM PROMPT ===\n');
+    console.log(geminiPrompt);
+    console.log('\n=== END PROMPT ===');
+
+    closeBriefingModal();
+    startScreen.classList.add('hidden');
+    Autopilot.stop();
+    Audio.init(); // must be in user gesture
+    startGame(onGameEnd);
+    connectGemini();
+}
+
 startBtn.addEventListener('click', () => {
     const callsign = callsignInput.value.trim().toUpperCase();
     if (!callsign) {
@@ -567,19 +738,29 @@ startBtn.addEventListener('click', () => {
         return;
     }
     callsignInput.style.borderColor = '';
-
-    // Generate prompt with the callsign
-    geminiPrompt = ScoringRules.getGeminiPrompt(callsign);
-    console.log('=== GEMINI SYSTEM PROMPT ===\n');
-    console.log(geminiPrompt);
-    console.log('\n=== END PROMPT ===');
-
-    startScreen.classList.add('hidden');
-    Autopilot.stop();
-    Audio.init(); // must be in user gesture
-    startGame(onGameEnd);
-    connectGemini();
+    openBriefingModal(callsign);
 });
+
+if (briefingLaunchBtn) {
+    briefingLaunchBtn.addEventListener('click', () => {
+        launchFlight();
+    });
+}
+if (briefingBackBtn) {
+    briefingBackBtn.addEventListener('click', () => {
+        closeBriefingModal();
+    });
+}
+if (briefingCloseBtn) {
+    briefingCloseBtn.addEventListener('click', () => {
+        closeBriefingModal();
+    });
+}
+if (startBriefingModal) {
+    startBriefingModal.addEventListener('click', (e) => {
+        if (e.target === startBriefingModal) closeBriefingModal();
+    });
+}
 
 // Game loop
 let lastTime = performance.now();

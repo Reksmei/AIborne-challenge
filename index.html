@@ -482,6 +482,225 @@
         .tech-item span {
             font-size: 11px; font-family: var(--font-mono); color: var(--g-text-dim);
         }
+
+        /* ---- Self-serve modals (Start Briefing & Session Finish) ---- */
+        @keyframes modal-pop {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        #start-briefing-modal,
+        #finish-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 22, 0.84);
+            z-index: 35;
+            display: none; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px);
+            padding: 16px;
+        }
+        #start-briefing-modal.visible,
+        #finish-modal.visible {
+            display: flex;
+        }
+
+        .briefing-panel,
+        .finish-panel {
+            width: 620px; max-width: 94vw; max-height: 90vh;
+            background: rgba(26, 26, 46, 0.97);
+            border: 1px solid rgba(66, 133, 244, 0.4);
+            border-radius: 18px;
+            padding: 26px 28px;
+            overflow-y: auto;
+            color: var(--g-text);
+            box-shadow: 0 20px 56px rgba(0, 0, 0, 0.7);
+            animation: modal-pop 0.2s ease-out;
+        }
+        .finish-panel {
+            width: 520px;
+            text-align: center;
+            border-color: rgba(52, 168, 83, 0.45);
+        }
+
+        #briefing-close-btn {
+            font-family: var(--font-mono);
+            font-size: 20px; background: none; border: none;
+            color: var(--g-text-dim); cursor: pointer;
+            padding: 4px 10px; line-height: 1; border-radius: 4px;
+            transition: color 0.2s, background 0.2s;
+        }
+        #briefing-close-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+        .briefing-section {
+            margin-bottom: 18px;
+        }
+        .briefing-section-title {
+            font-family: var(--font-mono);
+            font-size: 11px; font-weight: 700;
+            color: var(--g-text-dim);
+            letter-spacing: 1.6px;
+            margin-bottom: 10px;
+        }
+
+        .headset-callout,
+        .headset-return-card {
+            display: flex; align-items: center; gap: 16px;
+            padding: 15px 18px;
+            border-radius: 12px;
+            text-align: left;
+        }
+        .headset-callout {
+            background: rgba(66, 133, 244, 0.14);
+            border: 1px solid rgba(66, 133, 244, 0.4);
+        }
+        .headset-return-card {
+            background: rgba(52, 168, 83, 0.14);
+            border: 1px solid rgba(52, 168, 83, 0.45);
+            margin: 18px 0 22px;
+        }
+        .callout-icon {
+            width: 48px; height: 48px; flex-shrink: 0;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(66, 133, 244, 0.2);
+            color: #8ab4f8;
+        }
+        .headset-return-card .callout-icon {
+            background: rgba(52, 168, 83, 0.22);
+            color: #81c995;
+        }
+        .callout-icon svg {
+            width: 26px; height: 26px;
+        }
+        .callout-title {
+            font-size: 15px; font-weight: 700; color: #fff;
+            margin-bottom: 4px;
+        }
+        .callout-desc {
+            font-size: 13px; color: #cfd4de; line-height: 1.5;
+        }
+
+        .briefing-controls-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+        .control-row {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 12.5px; color: var(--g-text);
+        }
+        .control-row-highlight {
+            grid-column: 1 / -1;
+            background: rgba(234, 67, 53, 0.12);
+            border-color: rgba(234, 67, 53, 0.35);
+        }
+        .control-or {
+            font-size: 11px; color: var(--g-text-dim);
+        }
+        .key-badge-ptt {
+            color: #ff8a80;
+            background: rgba(234, 67, 53, 0.22);
+            border-color: rgba(234, 67, 53, 0.5);
+            min-width: 34px;
+        }
+
+        .voice-prompt-list {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+        .voice-chip {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 3px solid var(--g-blue);
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 12.5px; color: #e8eaed; line-height: 1.45;
+        }
+        .voice-chip-fun {
+            border-left-color: var(--g-yellow);
+            background: rgba(251, 188, 4, 0.07);
+        }
+
+        .modal-actions {
+            display: flex; justify-content: flex-end; align-items: center;
+            gap: 12px; margin-top: 22px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .modal-actions .btn {
+            margin-bottom: 0;
+            padding: 12px 30px;
+        }
+        .modal-actions .btn-secondary {
+            margin-top: 0;
+            padding: 11px 20px;
+        }
+
+        .finish-header h2 {
+            font-family: var(--font-mono);
+            font-size: 22px; font-weight: 700; color: #fff;
+            letter-spacing: 2px; margin-bottom: 6px;
+        }
+        .finish-header p {
+            font-size: 14px; color: var(--g-text-dim);
+            margin-bottom: 18px;
+        }
+        .finish-stats {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+            margin-bottom: 6px;
+        }
+        .finish-stats.hidden { display: none; }
+        .stat-box {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 10px;
+            padding: 12px 10px;
+        }
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 10px; color: var(--g-text-dim);
+            letter-spacing: 1.2px; margin-bottom: 6px;
+        }
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 20px; font-weight: 700; color: #fff;
+        }
+        #finish-score-val { color: var(--g-yellow); }
+        #finish-rank-val { color: #8ab4f8; }
+
+        #finish-done-btn {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .finish-countdown {
+            font-family: var(--font-mono);
+            font-size: 12px; color: var(--g-text-dim);
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .finish-progress-track {
+            width: 100%; height: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .finish-progress-bar {
+            height: 100%; width: 100%;
+            background: var(--g-green);
+            transition: width 0.95s linear;
+        }
+
+        @media (max-width: 600px) {
+            .briefing-controls-grid,
+            .voice-prompt-list,
+            .finish-stats {
+                grid-template-columns: 1fr;
+            }
+            .modal-actions {
+                flex-direction: column-reverse;
+                align-items: stretch;
+            }
+        }
     </style>
 </head>
 <body>
@@ -609,6 +828,122 @@
             <button id="lb-close-btn">X</button>
         </div>
         <div id="lb-body"></div>
+    </div>
+</div>
+
+<!-- Start Briefing modal (self-serve onboarding) -->
+<div id="start-briefing-modal" role="dialog" aria-modal="true" aria-labelledby="briefing-title">
+    <div class="briefing-panel">
+        <div class="about-header">
+            <h2 id="briefing-title">PRE-FLIGHT BRIEFING</h2>
+            <button id="briefing-close-btn" aria-label="Close">X</button>
+        </div>
+
+        <div class="briefing-section headset-callout">
+            <div class="callout-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 14v-3a9 9 0 0 1 18 0v3"/>
+                    <path d="M21 15a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h3z"/>
+                    <path d="M3 15a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2H3z"/>
+                    <path d="M19 17v1a3 3 0 0 1-3 3h-3"/>
+                </svg>
+            </div>
+            <div>
+                <div class="callout-title">1. Put On Your Headset</div>
+                <div class="callout-desc">Put on the headset and adjust the microphone so you can hear and talk to your AI Flight Assistant.</div>
+            </div>
+        </div>
+
+        <div class="briefing-section">
+            <div class="briefing-section-title">2. USE THE KEYS TO NAVIGATE</div>
+            <div class="briefing-controls-grid">
+                <div class="control-row">
+                    <span class="key-badge">W / S</span>
+                    <span class="control-or">or</span>
+                    <span class="key-badge">↑ / ↓</span>
+                    <span>Pitch Up / Down</span>
+                </div>
+                <div class="control-row">
+                    <span class="key-badge">A / D</span>
+                    <span class="control-or">or</span>
+                    <span class="key-badge">← / →</span>
+                    <span>Turn Left / Right</span>
+                </div>
+                <div class="control-row">
+                    <span class="key-badge">SHIFT</span>
+                    <span>Speed Boost</span>
+                </div>
+                <div class="control-row">
+                    <span class="key-badge">SPACE</span>
+                    <span>Air Brake</span>
+                </div>
+                <div class="control-row control-row-highlight">
+                    <span class="key-badge key-badge-ptt">T</span>
+                    <span><strong>Hold T</strong> to talk to your AI Flight Assistant</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="briefing-section">
+            <div class="briefing-section-title">3. HOLD "T" &amp; TRY SAYING</div>
+            <div class="voice-prompt-list">
+                <div class="voice-chip">“Which colour or shape scores the most?”</div>
+                <div class="voice-chip">“Highlight the highest-value targets for me!”</div>
+                <div class="voice-chip">“Bring me back to the center” / “What are the controls?”</div>
+                <div class="voice-chip voice-chip-fun">“Do a barrel roll!” — or ask for fun surprises!</div>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button id="briefing-back-btn" class="btn-secondary">BACK</button>
+            <button id="briefing-launch-btn" class="btn">READY — LAUNCH FLIGHT</button>
+        </div>
+    </div>
+</div>
+
+<!-- Session Finish modal (self-serve headset return & auto-reset) -->
+<div id="finish-modal" role="dialog" aria-modal="true" aria-labelledby="finish-title">
+    <div class="finish-panel">
+        <div class="finish-header">
+            <h2 id="finish-title">FLIGHT COMPLETE!</h2>
+            <p id="finish-subtitle">Great flying, pilot.</p>
+        </div>
+
+        <div id="finish-stats" class="finish-stats">
+            <div class="stat-box">
+                <div class="stat-label">FINAL SCORE</div>
+                <div id="finish-score-val" class="stat-value">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">FLIGHT TIME</div>
+                <div id="finish-time-val" class="stat-value">2:00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">LEADERBOARD</div>
+                <div id="finish-rank-val" class="stat-value">#1</div>
+            </div>
+        </div>
+
+        <div class="headset-return-card">
+            <div class="callout-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 14v-3a9 9 0 0 1 18 0v3"/>
+                    <path d="M21 15a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h3z"/>
+                    <path d="M3 15a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2H3z"/>
+                    <path d="M19 17v1a3 3 0 0 1-3 3h-3"/>
+                </svg>
+            </div>
+            <div>
+                <div class="callout-title">Please Put the Headset Back</div>
+                <div class="callout-desc">Take off your headset and place it neatly back ready for the next session.</div>
+            </div>
+        </div>
+
+        <button id="finish-done-btn" class="btn">DONE — READY FOR NEXT PILOT</button>
+        <div id="finish-countdown" class="finish-countdown">Returning to start screen in 20s...</div>
+        <div class="finish-progress-track">
+            <div id="finish-progress-bar" class="finish-progress-bar"></div>
+        </div>
     </div>
 </div>
 
